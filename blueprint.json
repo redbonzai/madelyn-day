@@ -1,0 +1,26 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "preferredVersions": {
+    "php": "8.3",
+    "wp": "latest"
+  },
+  "login": true,
+  "steps": [
+    {
+      "step": "setSiteOptions",
+      "options": {
+        "blogname": "Madelyn Day",
+        "blogdescription": "Stories that begin in dreams",
+        "permalink_structure": "/%postname%/"
+      }
+    },
+    {
+      "step": "activatePlugin",
+      "pluginPath": "/wordpress/wp-content/plugins/madelyn-content/madelyn-content.php"
+    },
+    {
+      "step": "activateTheme",
+      "themeFolderName": "madelyn-day"
+    }
+  ]
+}

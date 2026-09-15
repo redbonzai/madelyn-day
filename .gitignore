@@ -1,0 +1,9 @@
+.env
+.DS_Store
+*.log
+node_modules/
+backups/
+wp-content/uploads/
+wp-content/cache/
+wp-content/upgrade/
+wp-content/debug.log
