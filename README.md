@@ -7,10 +7,13 @@ A local WordPress project for Madelyn Day with owner-managed books, blog posts, 
 The default local runtime uses the official WordPress Playground CLI and Node.js 24. The included `.nvmrc` selects the tested version when NVM is installed.
 
 ```bash
-nvm use
-npm install
-npm run dev
+./bin/start-local.sh
 ```
+
+The script loads NVM, installs Node.js 24.19.0 when necessary, puts that Node
+binary first on `PATH`, installs missing dependencies, repairs the native
+WordPress Playground dependency when necessary, and starts the site. Stop the
+foreground server with `Ctrl+C`.
 
 - Website: <http://localhost:8080>
 - Administration: <http://localhost:8080/wp-admin>
@@ -45,6 +48,14 @@ Stop the containers without deleting content:
 - **Newsletter:** a provider-neutral signup destination configured in the theme Customizer; see `EMAIL_MARKETING_PLAN.md`.
 
 Set the public contact recipient and newsletter URL under **Appearance → Customize → Contact & newsletter**. If no contact override is entered, the form uses the WordPress administration email from **Settings → General**.
+
+### Add or update a book’s Amazon link and QR code
+
+1. In WordPress, open **Books → All Books** and select the book.
+2. In **Book Details**, paste the Amazon product URL into **Amazon purchase URL (automatically creates the QR code)**.
+3. Set **Availability** to **Available**, then select **Update**.
+
+The public book page automatically generates its QR code and Amazon purchase button from that URL. No QR image needs to be created or uploaded. Clearing the URL removes both elements.
 
 ## Project structure
 

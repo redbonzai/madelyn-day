@@ -17,6 +17,7 @@
             <p>Her wide-ranging career has included university teaching, interpretation, aviation, community service, medical interpretation, caregiving, animal rescue, and astronomy writing. Now in Austin, she continues to turn a lifetime of curiosity and compassion into stories—one dream, one dog walk, and one book at a time.</p>
             <a class="text-link" href="<?php echo esc_url(home_url('/about/')); ?>">Read the full story <span>→</span></a>
             <div class="credential-grid"><div><b>✦ A world of experience</b><span>Teaching, travel, languages, public service, family, and a lifelong love of learning.</span></div><div><b>♥ Stories with heart</b><span>From paranormal suspense and crime to animal care, comedy, and faith.</span></div></div>
+            <?php madelyn_day_amazon_author_card(); ?>
         </div>
     </div></section>
 
@@ -25,7 +26,7 @@
         <?php $books = new WP_Query(['post_type' => 'book', 'posts_per_page' => 7, 'orderby' => 'menu_order', 'order' => 'ASC']); ?>
         <?php if ($books->have_posts()) : ?><div class="book-grid"><?php $book_index = 0; while ($books->have_posts()) : $books->the_post(); $purchase_url = (string) get_post_meta(get_the_ID(), 'madelyn_purchase_url', true); $genres = get_the_terms(get_the_ID(), 'book_genre'); ?>
             <article class="book-card reveal" style="--delay:<?php echo esc_attr((string) (($book_index % 3) * 120)); ?>ms">
-                <a class="book-cover" href="<?php the_permalink(); ?>"><?php if (has_post_thumbnail()) { the_post_thumbnail('large'); } ?></a>
+                <a class="book-cover" href="<?php the_permalink(); ?>"><?php madelyn_day_featured_image(get_the_ID()); ?></a>
                 <div class="book-meta"><span><?php echo esc_html($genres && !is_wp_error($genres) ? $genres[0]->name : 'Book'); ?></span><span>By Madelyn Day</span></div>
                 <h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3><p><?php echo esc_html(get_the_excerpt()); ?></p>
                 <?php if ($purchase_url) : ?><a class="text-link" href="<?php echo esc_url($purchase_url); ?>" target="_blank" rel="noopener">View on Amazon <span>→</span></a><?php else : ?><span class="text-link muted-link">Purchase link coming soon</span><?php endif; ?>
@@ -56,7 +57,7 @@
 
     <section class="section sand journal-section"><div class="shell"><div class="center-head reveal"><p class="eyebrow">The journal</p><h2>Story Insights and Writing<br>Inspiration</h2></div>
         <?php $posts = new WP_Query(['post_type' => 'post', 'posts_per_page' => 3, 'post_status' => 'publish']); ?>
-        <?php if ($posts->have_posts()) : ?><div class="journal-grid"><?php $post_index = 0; while ($posts->have_posts()) : $posts->the_post(); ?><article class="journal-card reveal" style="--delay:<?php echo esc_attr((string) ($post_index * 160)); ?>ms"><a class="journal-image" href="<?php the_permalink(); ?>"><?php if (has_post_thumbnail()) { the_post_thumbnail('large'); } ?></a><div class="journal-body"><div class="meta"><?php echo esc_html(get_the_date()); ?> · <?php echo esc_html(get_the_author()); ?></div><h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3><p><?php echo esc_html(get_the_excerpt()); ?></p><a class="text-link" href="<?php the_permalink(); ?>">Read the story <span>→</span></a></div></article><?php $post_index++; endwhile; ?></div><?php endif; wp_reset_postdata(); ?>
+        <?php if ($posts->have_posts()) : ?><div class="journal-grid"><?php $post_index = 0; while ($posts->have_posts()) : $posts->the_post(); ?><article class="journal-card reveal" style="--delay:<?php echo esc_attr((string) ($post_index * 160)); ?>ms"><a class="journal-image" href="<?php the_permalink(); ?>"><?php madelyn_day_featured_image(get_the_ID()); ?></a><div class="journal-body"><div class="meta"><?php echo esc_html(get_the_date()); ?> · <?php echo esc_html(get_the_author()); ?></div><h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3><p><?php echo esc_html(get_the_excerpt()); ?></p><a class="text-link" href="<?php the_permalink(); ?>">Read the story <span>→</span></a></div></article><?php $post_index++; endwhile; ?></div><?php endif; wp_reset_postdata(); ?>
     </div></section>
 </main>
 <?php get_footer(); ?>
