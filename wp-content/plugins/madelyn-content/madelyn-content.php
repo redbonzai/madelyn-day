@@ -357,7 +357,7 @@ final class Madelyn_Day_Content {
             'rewrite' => ['slug' => 'reviews'],
             'show_in_rest' => true,
             'menu_icon' => 'dashicons-star-filled',
-            'supports' => ['title', 'editor', 'revisions', 'author', 'page-attributes'],
+            'supports' => ['title', 'editor', 'thumbnail', 'revisions', 'author', 'page-attributes'],
         ]);
     }
 
