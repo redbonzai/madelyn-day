@@ -1,6 +1,8 @@
 document.querySelectorAll('.qr-code[data-qr-url]').forEach((container, index) => {
     const destination = container.dataset.qrUrl;
     const bookTitle = container.dataset.bookTitle || 'this book';
+    const qrTitle = container.dataset.qrTitle || `QR code to view ${bookTitle} on Amazon`;
+    const qrDescription = container.dataset.qrDescription || `Scan with a phone camera to open the Amazon purchase page for ${bookTitle}.`;
 
     if (!destination || typeof qrcode !== 'function') {
         return;
@@ -15,11 +17,11 @@ document.querySelectorAll('.qr-code[data-qr-url]').forEach((container, index) =>
         scalable: true,
         title: {
             id: `book-qr-title-${index}`,
-            text: `QR code to view ${bookTitle} on Amazon`,
+            text: qrTitle,
         },
         alt: {
             id: `book-qr-description-${index}`,
-            text: `Scan with a phone camera to open the Amazon purchase page for ${bookTitle}.`,
+            text: qrDescription,
         },
     });
 });

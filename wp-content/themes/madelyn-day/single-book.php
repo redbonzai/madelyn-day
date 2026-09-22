@@ -3,7 +3,7 @@
     <p class="eyebrow">A book by Madelyn Day</p>
     <h1><?php the_title(); ?></h1>
     <div class="book-detail-grid">
-        <?php if (has_post_thumbnail()) : ?><div class="book-detail-cover"><?php the_post_thumbnail('large'); ?></div><?php endif; ?>
+        <div class="book-detail-cover"><?php madelyn_day_featured_image(get_the_ID()); ?></div>
         <div>
             <div class="article-content"><?php the_content(); ?></div>
             <?php $purchase = (string) get_post_meta(get_the_ID(), 'madelyn_purchase_url', true); ?>

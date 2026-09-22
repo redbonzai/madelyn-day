@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Madelyn Day Content
  * Description: Books, events, and reader reviews for the Madelyn Day author website.
- * Version: 0.3.0
+ * Version: 0.3.2
  * Author: Madelyn Day
  */
 
@@ -19,6 +19,8 @@ final class Madelyn_Day_Content {
         add_action('init', [self::class, 'register_meta']);
         add_action('init', [self::class, 'maybe_create_core_pages'], 30);
         add_action('init', [self::class, 'seed_initial_content'], 40);
+        add_action('init', [self::class, 'repair_missing_featured_media'], 45);
+        add_action('init', [self::class, 'sync_known_purchase_urls'], 50);
         add_action('add_meta_boxes', [self::class, 'add_meta_boxes']);
         add_action('save_post', [self::class, 'save_meta']);
         add_filter('manage_book_posts_columns', [self::class, 'book_columns']);
@@ -94,7 +96,7 @@ final class Madelyn_Day_Content {
             ['slug' => 'the-house-that-whispers', 'title' => 'The House That Whispers', 'genre' => 'True paranormal experience', 'image' => 'house-that-whispers.png', 'url' => 'https://www.amazon.com/HOUSE-THAT-WHISPERS-PARANORMAL-EXPERIENCE-ebook/dp/B0GTN2S4HS/', 'excerpt' => 'A true paranormal experience shaped by memory, mystery, and the things a house refuses to forget.'],
             ['slug' => 'choose-train-your-new-best-friend', 'title' => 'Choose & Train Your New Best Friend', 'genre' => 'Pets & animal care', 'image' => 'choose-train-best-friend.png', 'url' => 'https://www.amazon.com/CHOOSE-TRAIN-YOUR-BEST-FRIEND-ebook/dp/B0FRGH8BFF/', 'excerpt' => 'Friendly guidance on breed choice, training, feeding, rescue, adoption, and preparing your home.'],
             ['slug' => 'unveiling-the-truth', 'title' => 'Unveiling the Truth', 'genre' => 'Criminal investigation', 'image' => 'unveiling-the-truth.png', 'url' => 'https://www.amazon.com/UNVEILING-TRUTH-STRATEGY-CRIMINAL-INVESTIGATIONS-ebook/dp/B0FCSLPQLS/', 'excerpt' => 'Forensic science, behavioral clues, and practical strategy for understanding criminal investigations.'],
-            ['slug' => 'the-chair-the-car-the-chaos-and-the-siamese-cat', 'title' => 'The Chair, the Car, the Chaos… and the Siamese Cat', 'genre' => 'Comedic mystery', 'image' => 'chair-car-chaos-cat.png', 'url' => '', 'excerpt' => 'An entertaining mystery packed with bizarre events, coincidences, and unpredictable twists.'],
+            ['slug' => 'the-chair-the-car-the-chaos-and-the-siamese-cat', 'title' => 'The Chair, the Car, the Chaos… and the Siamese Cat', 'genre' => 'Comedic mystery', 'image' => 'chair-car-chaos-cat.png', 'url' => 'https://www.amazon.com/CHAIR-CAR-CHAOS-Siamese-Cat/dp/B0FD7FDV51/', 'excerpt' => 'An entertaining mystery packed with bizarre events, coincidences, and unpredictable twists.'],
             ['slug' => 'where-all-prayers-meet', 'title' => 'Where All Prayers Meet', 'genre' => 'Faith & culture', 'image' => 'where-all-prayers-meet.png', 'url' => '', 'excerpt' => 'An exploration of the Lord’s Prayer across cultures, faiths, and traditions.'],
         ];
 
@@ -217,6 +219,78 @@ final class Madelyn_Day_Content {
         update_option('madelyn_seed_content_version', 2);
     }
 
+    /**
+     * Repair media relationships after a database-first deployment.
+     *
+     * A migrated database can contain the seeded posts before the custom theme is
+     * active on the destination. In that case the original seeder cannot locate
+     * the bundled image files and the posts arrive without featured media.
+     */
+    public static function repair_missing_featured_media(): void {
+        if ((int) get_option('madelyn_featured_media_repair_version', 0) >= 1) {
+            return;
+        }
+
+        $asset_dir = get_stylesheet_directory() . '/assets/images';
+        $assets = [
+            'book' => [
+                'shut-up-and-dig' => 'shut-up-and-dig.png',
+                'the-veil-beyond-the-walls' => 'veil-beyond-the-walls.png',
+                'the-house-that-whispers' => 'house-that-whispers.png',
+                'choose-train-your-new-best-friend' => 'choose-train-best-friend.png',
+                'unveiling-the-truth' => 'unveiling-the-truth.png',
+                'the-chair-the-car-the-chaos-and-the-siamese-cat' => 'chair-car-chaos-cat.png',
+                'where-all-prayers-meet' => 'where-all-prayers-meet.png',
+            ],
+            'post' => [
+                'welcome-to-madelyn-days-imaginative-world' => 'journal-dreams.webp',
+                'stories-that-begin-in-dreams' => 'journal-stories.webp',
+                'a-life-across-cultures-careers-and-stories' => 'journal-cultures.webp',
+            ],
+        ];
+
+        foreach ($assets as $post_type => $items) {
+            foreach ($items as $slug => $filename) {
+                $post = get_page_by_path($slug, OBJECT, $post_type);
+                if (!$post || has_post_thumbnail($post->ID)) {
+                    continue;
+                }
+                $attachment_id = self::seed_attachment($asset_dir . '/' . $filename, get_the_title($post) . ($post_type === 'book' ? ' book cover' : ''));
+                if ($attachment_id) {
+                    set_post_thumbnail($post->ID, $attachment_id);
+                }
+            }
+        }
+
+        update_option('madelyn_featured_media_repair_version', 1);
+    }
+
+    /**
+     * Add newly confirmed purchase destinations without overwriting URLs that
+     * an editor has already customized in WordPress.
+     */
+    public static function sync_known_purchase_urls(): void {
+        if ((int) get_option('madelyn_purchase_url_sync_version', 0) >= 1) {
+            return;
+        }
+
+        $purchase_urls = [
+            'the-chair-the-car-the-chaos-and-the-siamese-cat' => 'https://www.amazon.com/CHAIR-CAR-CHAOS-Siamese-Cat/dp/B0FD7FDV51/',
+        ];
+
+        foreach ($purchase_urls as $slug => $url) {
+            $book = get_page_by_path($slug, OBJECT, 'book');
+            if (!$book || get_post_meta($book->ID, 'madelyn_purchase_url', true)) {
+                continue;
+            }
+
+            update_post_meta($book->ID, 'madelyn_purchase_url', esc_url_raw($url));
+            update_post_meta($book->ID, 'madelyn_availability', 'available');
+        }
+
+        update_option('madelyn_purchase_url_sync_version', 1);
+    }
+
     private static function seed_attachment(string $source, string $title): int {
         if (!file_exists($source)) {
             return 0;
@@ -283,7 +357,7 @@ final class Madelyn_Day_Content {
             'rewrite' => ['slug' => 'reviews'],
             'show_in_rest' => true,
             'menu_icon' => 'dashicons-star-filled',
-            'supports' => ['title', 'editor', 'revisions', 'author', 'page-attributes'],
+            'supports' => ['title', 'editor', 'thumbnail', 'revisions', 'author', 'page-attributes'],
         ]);
     }
 
@@ -376,13 +450,14 @@ final class Madelyn_Day_Content {
     public static function book_meta_box(WP_Post $post): void {
         self::nonce();
         self::field($post->ID, 'madelyn_subtitle', 'Subtitle');
-        self::field($post->ID, 'madelyn_purchase_url', 'Primary purchase URL', 'url');
+        self::field($post->ID, 'madelyn_purchase_url', 'Amazon purchase URL (automatically creates the QR code)', 'url');
         self::field($post->ID, 'madelyn_asin', 'ISBN or ASIN');
         self::field($post->ID, 'madelyn_publication_date', 'Publication date', 'date');
         self::field($post->ID, 'madelyn_availability', 'Availability', 'select', [
             'available' => 'Available', 'coming-soon' => 'Coming soon', 'unavailable' => 'Unavailable', 'out-of-print' => 'Out of print',
         ]);
         self::field($post->ID, 'madelyn_featured', 'Homepage placement', 'checkbox');
+        echo '<p>Paste the book’s full Amazon URL above and update the book. The public book page will automatically display the matching QR code and purchase button; no QR image upload is needed.</p>';
         echo '<p>Use the Featured Image panel for the book cover. Use Book Genres for categorization and Page Attributes for display order.</p>';
     }
 
