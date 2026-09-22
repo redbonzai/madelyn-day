@@ -65,3 +65,33 @@ The public book page automatically generates its QR code and Amazon purchase but
 - `bin/setup.sh` — repeatable local installation and activation.
 
 Content types live in a plugin rather than the theme so the records remain available if the visual theme changes later.
+
+## Deploy to Bluehost
+
+Pushing a change to `main` that touches the custom theme, content plugin, or deployment workflow runs `.github/workflows/deploy-bluehost.yml`. A deployment can also be started manually from **GitHub → Actions → Deploy to Bluehost → Run workflow**.
+
+The workflow synchronizes only these managed directories:
+
+- `wp-content/themes/madelyn-day/`
+- `wp-content/plugins/madelyn-content/`
+
+It does not deploy WordPress core, `wp-config.php`, the database, or `wp-content/uploads`.
+
+### One-time SSH setup
+
+1. Create a dedicated SSH key pair for GitHub Actions. Do not give the private key a passphrase because the workflow is non-interactive.
+2. In **cPanel → SSH Access → Manage SSH Keys**, import and authorize the public key.
+3. In **cPanel → Domains**, confirm the document root for `mbcreativepublishingllc.com`. The screenshot indicates the account home is `/home1/pvqvmomy`; the WordPress path may be `/home1/pvqvmomy/public_html`, but use the document root shown in cPanel rather than assuming it.
+4. Verify the Bluehost SSH host-key fingerprint through Bluehost/cPanel before saving it to GitHub.
+5. In **GitHub → Settings → Secrets and variables → Actions**, create these repository secrets:
+
+| Secret | Value |
+| --- | --- |
+| `BLUEHOST_SSH_HOST` | The Bluehost SSH hostname or server address |
+| `BLUEHOST_SSH_PORT` | The SSH port, commonly `22` |
+| `BLUEHOST_SSH_USER` | The cPanel user, shown as `pvqvmomy` in the screenshot |
+| `BLUEHOST_SSH_PRIVATE_KEY` | The complete dedicated private key, including its BEGIN/END lines |
+| `BLUEHOST_KNOWN_HOSTS` | The verified `known_hosts` entry for the SSH server |
+| `BLUEHOST_WORDPRESS_PATH` | The absolute document root containing `wp-config.php` |
+
+The workflow refuses broad destination paths, verifies that the target contains a WordPress installation, deploys with strict SSH host-key checking, and runs PHP syntax checks on the live theme and plugin after synchronization.

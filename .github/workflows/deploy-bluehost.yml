@@ -1,0 +1,96 @@
+name: Deploy to Bluehost
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "wp-content/themes/madelyn-day/**"
+      - "wp-content/plugins/madelyn-content/**"
+      - ".github/workflows/deploy-bluehost.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: bluehost-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy WordPress theme and plugin
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.BLUEHOST_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.BLUEHOST_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/bluehost_deploy
+          chmod 600 ~/.ssh/bluehost_deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Validate deployment settings and remote WordPress installation
+        env:
+          SSH_HOST: ${{ secrets.BLUEHOST_SSH_HOST }}
+          SSH_PORT: ${{ secrets.BLUEHOST_SSH_PORT }}
+          SSH_USER: ${{ secrets.BLUEHOST_SSH_USER }}
+          WORDPRESS_PATH: ${{ secrets.BLUEHOST_WORDPRESS_PATH }}
+        run: |
+          set -eu
+          : "${SSH_HOST:?Missing BLUEHOST_SSH_HOST}"
+          : "${SSH_PORT:?Missing BLUEHOST_SSH_PORT}"
+          : "${SSH_USER:?Missing BLUEHOST_SSH_USER}"
+          : "${WORDPRESS_PATH:?Missing BLUEHOST_WORDPRESS_PATH}"
+          case "$WORDPRESS_PATH" in
+            /|/home|/home1|/home1/"$SSH_USER")
+              echo "Refusing unsafe BLUEHOST_WORDPRESS_PATH: $WORDPRESS_PATH" >&2
+              exit 1
+              ;;
+          esac
+          ssh -i ~/.ssh/bluehost_deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "test -f '$WORDPRESS_PATH/wp-config.php' && test -d '$WORDPRESS_PATH/wp-content'"
+
+      - name: Deploy custom theme
+        env:
+          SSH_HOST: ${{ secrets.BLUEHOST_SSH_HOST }}
+          SSH_PORT: ${{ secrets.BLUEHOST_SSH_PORT }}
+          SSH_USER: ${{ secrets.BLUEHOST_SSH_USER }}
+          WORDPRESS_PATH: ${{ secrets.BLUEHOST_WORDPRESS_PATH }}
+        run: |
+          set -eu
+          rsync -az --delete-delay \
+            -e "ssh -i ~/.ssh/bluehost_deploy -p $SSH_PORT" \
+            wp-content/themes/madelyn-day/ \
+            "$SSH_USER@$SSH_HOST:$WORDPRESS_PATH/wp-content/themes/madelyn-day/"
+
+      - name: Deploy custom content plugin
+        env:
+          SSH_HOST: ${{ secrets.BLUEHOST_SSH_HOST }}
+          SSH_PORT: ${{ secrets.BLUEHOST_SSH_PORT }}
+          SSH_USER: ${{ secrets.BLUEHOST_SSH_USER }}
+          WORDPRESS_PATH: ${{ secrets.BLUEHOST_WORDPRESS_PATH }}
+        run: |
+          set -eu
+          rsync -az --delete-delay \
+            -e "ssh -i ~/.ssh/bluehost_deploy -p $SSH_PORT" \
+            wp-content/plugins/madelyn-content/ \
+            "$SSH_USER@$SSH_HOST:$WORDPRESS_PATH/wp-content/plugins/madelyn-content/"
+
+      - name: Verify deployed PHP files
+        env:
+          SSH_HOST: ${{ secrets.BLUEHOST_SSH_HOST }}
+          SSH_PORT: ${{ secrets.BLUEHOST_SSH_PORT }}
+          SSH_USER: ${{ secrets.BLUEHOST_SSH_USER }}
+          WORDPRESS_PATH: ${{ secrets.BLUEHOST_WORDPRESS_PATH }}
+        run: |
+          set -eu
+          ssh -i ~/.ssh/bluehost_deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "php -l '$WORDPRESS_PATH/wp-content/themes/madelyn-day/front-page.php' && php -l '$WORDPRESS_PATH/wp-content/plugins/madelyn-content/madelyn-content.php'"
